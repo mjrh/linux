@@ -163,6 +163,11 @@
 		};
 	};
 
+	sound: sound {
+		compatible = "rockchip,rk3399-gru-sound";
+		rockchip,cpu = <&i2s0 &spdif>;
+	};
+
 	speaker_amp: speaker-amplifier {
 		compatible = "simple-audio-amplifier";
 		enable-gpios = <&gpio4 RK_PD3 GPIO_ACTIVE_HIGH>;
@@ -375,6 +380,11 @@
 	};
 };
 
+&cdn_dp {
+	phys = <&tcphy0_dp>;
+	status = "okay";
+};
+
 &cpu_b0 {
 	cpu-supply = <&vdd_cpu_b>;
 };
@@ -407,6 +417,12 @@
 &edp_out {
 	edp_out_panel: endpoint {
 		remote-endpoint = <&panel_in_edp>;
+	};
+};
+
+&dp_out {
+	dp_controller_output: endpoint {
+		remote-endpoint = <&dp_phy_in>;
 	};
 };
 
@@ -680,7 +696,7 @@
 		pinctrl-0 = <&fusb0_int_pin>;
 		vbus-supply = <&vbus_typec>;
 
-		connector {
+		usb_con: connector {
 			compatible = "usb-c-connector";
 			data-role = "dual";
 			label = "USB-C";
@@ -692,6 +708,13 @@
 				<PDO_FIXED(5000, 1400, PDO_FIXED_USB_COMM)>;
 			try-power-role = "sink";
 
+			altmodes {
+				displayport {
+					svid = /bits/ 16 <0xff01>;
+					vdo = <0x00001c46>;
+				};
+			};
+
 			ports {
 				#address-cells = <1>;
 				#size-cells = <0>;
@@ -699,18 +722,18 @@
 				port@0 {
 					reg = <0>;
 
-					usbc_hs: endpoint {
+					usbc0_orien_sw: endpoint {
 						remote-endpoint =
-							<&u2phy0_typec_hs>;
+							<&tcphy0_orientation_switch>;
 					};
 				};
 
 				port@1 {
 					reg = <1>;
 
-					usbc_ss: endpoint {
+					usbc0_role_sw: endpoint {
 						remote-endpoint =
-							<&tcphy0_typec_ss>;
+							<&dwc3_0_role_switch>;
 					};
 				};
 
@@ -956,22 +979,44 @@
 	};
 };
 
+&sound {
+	rockchip,codec = <&cdn_dp>;
+	status = "okay";
+};
+
+&spdif {
+	status = "okay";
+};
+
 &tcphy0 {
 	status = "okay";
 };
 
 &tcphy0_dp {
+	mode-switch;
+
 	port {
-		tcphy0_typec_dp: endpoint {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		tcphy0_typec_dp: endpoint@0 {
+			reg = <0>;
 			remote-endpoint = <&usbc_dp>;
+		};
+
+		dp_phy_in: endpoint@1 {
+			reg = <1>;
+			remote-endpoint = <&dp_controller_output>;
 		};
 	};
 };
 
 &tcphy0_usb3 {
+	orientation-switch;
+
 	port {
-		tcphy0_typec_ss: endpoint {
-			remote-endpoint = <&usbc_ss>;
+		tcphy0_orientation_switch: endpoint {
+			remote-endpoint = <&usbc0_orien_sw>;
 		};
 	};
 };
@@ -998,12 +1043,6 @@
 	u2phy0_host: host-port {
 		phy-supply = <&vcc5v0_otg>;
 		status = "okay";
-	};
-
-	port {
-		u2phy0_typec_hs: endpoint {
-			remote-endpoint = <&usbc_hs>;
-		};
 	};
 };
 
@@ -1066,8 +1105,14 @@
 };
 
 &usbdrd_dwc3_0 {
-	dr_mode = "host";
+	usb-role-switch;
 	status = "okay";
+
+	port {
+		dwc3_0_role_switch: endpoint {
+			remote-endpoint = <&usbc0_role_sw>;
+		};
+	};
 };
 
 &usbdrd3_1 {
