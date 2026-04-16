@@ -932,6 +932,7 @@ out:
 }
 
 static void cdn_dp_bridge_hpd_notify(struct drm_bridge *bridge,
+			   struct drm_connector *connector,
 			   enum drm_connector_status status)
 {
 	struct cdn_dp_bridge *dp_bridge = bridge_to_dp_bridge(bridge);
